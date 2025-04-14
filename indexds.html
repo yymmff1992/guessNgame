@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Guessing Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        .bounce {
+            animation: bounce 0.5s;
+        }
+        .flip-in {
+            animation: flipIn 0.5s;
+        }
+        @keyframes flipIn {
+            from { transform: rotateX(90deg); opacity: 0; }
+            to { transform: rotateX(0deg); opacity: 1; }
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 to-purple-800 min-h-screen flex flex-col items-center justify-center p-4 text-white">
+    <div class="max-w-md w-full bg-white/10 backdrop-blur-md rounded-xl shadow-2xl overflow-hidden border border-white/20 transition-all duration-300 hover:shadow-purple-500/30">
+        <div class="p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-transparent">
+                    <i class="fas fa-gamepad mr-2"></i> Guess the Number
+                </h1>
+                <button id="infoBtn" class="text-white/70 hover:text-white transition">
+                    <i class="fas fa-info-circle text-xl"></i>
+                </button>
+            </div>
+            
+            <div id="gameArea" class="space-y-6">
+                <div class="bg-black/20 rounded-lg p-4 text-center">
+                    <p class="text-sm font-light mb-1">I'm thinking of a number between</p>
+                    <div class="flex justify-center items-center space-x-2">
+                        <span id="minRange" class="px-3 py-1 bg-purple-600 rounded-full text-sm font-bold">1</span>
+                        <span class="text-sm">and</span>
+                        <span id="maxRange" class="px-3 py-1 bg-pink-600 rounded-full text-sm font-bold">100</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-center space-x-2">
+                    <button id="decreaseBtn" class="bg-white/10 hover:bg-white/20 p-2 rounded-full transition">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <input type="number" id="guessInput" class="w-full bg-white/10 border border-white/20 rounded-lg py-3 px-4 text-center text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-purple-500" min="1" max="100">
+                    <button id="increaseBtn" class="bg-white/10 hover:bg-white/20 p-2 rounded-full transition">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                
+                <div class="flex space-x-3">
+                    <button id="guessBtn" class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-purple-500/30 transition-all duration-300 flex items-center justify-center">
+                        <i class="fas fa-paper-plane mr-2"></i> Submit Guess
+                    </button>
+                    <button id="newGameBtn" class="bg-white/10 hover:bg-white/20 text-white font-bold py-3 px-4 rounded-lg transition flex items-center justify-center">
+                        <i class="fas fa-redo mr-2"></i>
+                    </button>
+                </div>
+                
+                <div id="messageArea" class="min-h-16 text-center">
+                    <p id="message" class="text-sm font-light italic">Enter your guess and press submit!</p>
+                    <div id="attempts" class="mt-2 text-xs text-white/70">
+                        <span id="attemptCount">0</span> attempts
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="historySection" class="bg-black/20 px-6 py-4 border-t border-white/10">
+            <h3 class="text-sm font-semibold mb-2 flex items-center">
+                <i class="fas fa-history mr-2"></i> Guess History
+            </h3>
+            <div id="guessHistory" class="flex flex-wrap gap-2"></div>
+        </div>
+    </div>
+    
+    <!-- Modal -->
+    <div id="infoModal" class="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl max-w-md w-full p-6 border border-white/10 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-purple-400">
+                    <i class="fas fa-info-circle mr-2"></i> How to Play
+                </h2>
+                <button id="closeModal" class="text-white/50 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-sm text-white/80">
+                <p>I'm thinking of a number between 1 and 100. Your goal is to guess that number!</p>
+                <p>After each guess, I'll tell you if your guess was too high or too low.</p>
+                <p>Try to find the number in as few guesses as possible.</p>
+                <div class="mt-4 pt-4 border-t border-white/10">
+                    <h3 class="font-semibold text-purple-300 mb-2">Tips:</h3>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Use the process of elimination based on feedback</li>
+                        <li>Start with a guess in the middle (like 50) to eliminate half the numbers</li>
+                        <li>Pay attention to your previous guesses</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-center">
+                <button id="startGameBtn" class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-2 px-6 rounded-lg transition">
+                    Start Game
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <audio id="correctSound" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3" preload="auto"></audio>
+    <audio id="wrongSound" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3" preload="auto"></audio>
+    <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-winning-chimes-2015.mp3" preload="auto"></audio>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Game variables
+            let secretNumber = generateRandomNumber(1, 100);
+            let attempts = 0;
+            let minRange = 1;
+            let maxRange = 100;
+            let gameActive = true;
+            
+            // DOM elements
+            const guessInput = document.getElementById('guessInput');
+            const guessBtn = document.getElementById('guessBtn');
+            const newGameBtn = document.getElementById('newGameBtn');
+            const message = document.getElementById('message');
+            const attemptCount = document.getElementById('attemptCount');
+            const guessHistory = document.getElementById('guessHistory');
+            const minRangeDisplay = document.getElementById('minRange');
+            const maxRangeDisplay = document.getElementById('maxRange');
+            const decreaseBtn = document.getElementById('decreaseBtn');
+            const increaseBtn = document.getElementById('increaseBtn');
+            const infoBtn = document.getElementById('infoBtn');
+            const infoModal = document.getElementById('infoModal');
+            const closeModal = document.getElementById('closeModal');
+            const startGameBtn = document.getElementById('startGameBtn');
+            
+            // Audio elements
+            const correctSound = document.getElementById('correctSound');
+            const wrongSound = document.getElementById('wrongSound');
+            const winSound = document.getElementById('winSound');
+            
+            // Event listeners
+            guessBtn.addEventListener('click', checkGuess);
+            newGameBtn.addEventListener('click', startNewGame);
+            guessInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') checkGuess();
+            });
+            decreaseBtn.addEventListener('click', () => adjustGuess(-1));
+            increaseBtn.addEventListener('click', () => adjustGuess(1));
+            infoBtn.addEventListener('click', showInfoModal);
+            closeModal.addEventListener('click', hideInfoModal);
+            startGameBtn.addEventListener('click', () => {
+                hideInfoModal();
+                startNewGame();
+            });
+            
+            // Initialize game
+            startNewGame();
+            
+            // Game functions
+            function generateRandomNumber(min, max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+            
+            function startNewGame() {
+                secretNumber = generateRandomNumber(minRange, maxRange);
+                attempts = 0;
+                gameActive = true;
+                updateAttemptDisplay();
+                clearGuessHistory();
+                resetMessage();
+                guessInput.value = '';
+                guessInput.focus();
+                
+                // Visual feedback
+                document.getElementById('gameArea').classList.add('flip-in');
+                setTimeout(() => {
+                    document.getElementById('gameArea').classList.remove('flip-in');
+                }, 500);
+            }
+            
+            function checkGuess() {
+                if (!gameActive) return;
+                
+                const userGuess = parseInt(guessInput.value);
+                
+                // Validate input
+                if (isNaN(userGuess) || userGuess < minRange || userGuess > maxRange) {
+                    message.textContent = `Please enter a number between ${minRange} and ${maxRange}`;
+                    message.classList.add('text-red-400');
+                    guessInput.classList.add('shake');
+                    setTimeout(() => guessInput.classList.remove('shake'), 500);
+                    wrongSound.play();
+                    return;
+                }
+                
+                attempts++;
+                updateAttemptDisplay();
+                addToGuessHistory(userGuess);
+                
+                // Check guess
+                if (userGuess === secretNumber) {
+                    handleWin();
+                } else {
+                    provideFeedback(userGuess);
+                }
+            }
+            
+            function handleWin() {
+                gameActive = false;
+                message.innerHTML = `<span class="text-green-400 font-bold">Correct!</span> You found the number in ${attempts} attempts!`;
+                guessBtn.disabled = true;
+                winSound.play();
+                createConfetti();
+                
+                // Visual celebration
+                document.getElementById('messageArea').classList.add('bounce');
+                setTimeout(() => {
+                    document.getElementById('messageArea').classList.remove('bounce');
+                }, 1000);
+            }
+            
+            function provideFeedback(guess) {
+                if (guess < secretNumber) {
+                    message.innerHTML = `<span class="text-blue-300">Too low!</span> Try a higher number.`;
+                    minRange = Math.max(minRange, guess + 1);
+                    minRangeDisplay.textContent = minRange;
+                    correctSound.play();
+                } else {
+                    message.innerHTML = `<span class="text-red-300">Too high!</span> Try a lower number.`;
+                    maxRange = Math.min(maxRange, guess - 1);
+                    maxRangeDisplay.textContent = maxRange;
+                    correctSound.play();
+                }
+                
+                // Visual feedback
+                guessInput.classList.add('shake');
+                setTimeout(() => guessInput.classList.remove('shake'), 500);
+                
+                // Update input constraints
+                guessInput.min = minRange;
+                guessInput.max = maxRange;
+                guessInput.value = '';
+                guessInput.focus();
+            }
+            
+            function updateAttemptDisplay() {
+                attemptCount.textContent = attempts;
+                document.getElementById('attempts').classList.add('pulse');
+                setTimeout(() => {
+                    document.getElementById('attempts').classList.remove('pulse');
+                }, 1000);
+            }
+            
+            function addToGuessHistory(guess) {
+                const guessElement = document.createElement('div');
+                guessElement.className = `px-3 py-1 rounded-full text-xs font-bold ${
+                    guess === secretNumber ? 'bg-gradient-to-r from-green-500 to-teal-500' : 
+                    guess < secretNumber ? 'bg-blue-600' : 'bg-red-600'
+                }`;
+                guessElement.textContent = guess;
+                guessHistory.appendChild(guessElement);
+                
+                // Scroll history to end
+                guessHistory.scrollLeft = guessHistory.scrollWidth;
+            }
+            
+            function clearGuessHistory() {
+                guessHistory.innerHTML = '';
+            }
+            
+            function resetMessage() {
+                message.textContent = 'Enter your guess and press submit!';
+                message.className = 'text-sm font-light italic';
+                guessBtn.disabled = false;
+                minRange = 1;
+                maxRange = 100;
+                minRangeDisplay.textContent = minRange;
+                maxRangeDisplay.textContent = maxRange;
+                guessInput.min = minRange;
+                guessInput.max = maxRange;
+            }
+            
+            function adjustGuess(amount) {
+                let currentValue = parseInt(guessInput.value) || minRange;
+                let newValue = currentValue + amount;
+                
+                // Constrain to current range
+                newValue = Math.max(minRange, Math.min(maxRange, newValue));
+                
+                guessInput.value = newValue;
+                
+                // Visual feedback
+                if (amount > 0) {
+                    increaseBtn.classList.add('bounce');
+                    setTimeout(() => increaseBtn.classList.remove('bounce'), 300);
+                } else {
+                    decreaseBtn.classList.add('bounce');
+                    setTimeout(() => decreaseBtn.classList.remove('bounce'), 300);
+                }
+            }
+            
+            function showInfoModal() {
+                infoModal.classList.remove('hidden');
+                infoModal.classList.add('flex');
+            }
+            
+            function hideInfoModal() {
+                infoModal.classList.remove('flex');
+                infoModal.classList.add('hidden');
+            }
+            
+            function createConfetti() {
+                const colors = ['#f00', '#0f0', '#00f', '#ff0', '#f0f', '#0ff'];
+                const container = document.getElementById('gameArea');
+                
+                for (let i = 0; i < 50; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.top = -10 + 'px';
+                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    container.appendChild(confetti);
+                    
+                    // Animate each confetti piece
+                    setTimeout(() => {
+                        confetti.style.opacity = 1;
+                        confetti.style.top = Math.random() * 100 + '%';
+                        confetti.style.left = (Math.random() * 100 - 20) + '%';
+                        confetti.style.transition = `top ${Math.random() * 2 + 1}s linear, left ${Math.random() * 2 + 1}s ease-out`;
+                        
+                        // Remove after animation
+                        setTimeout(() => {
+                            confetti.remove();
+                        }, 3000);
+                    }, i * 50);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
